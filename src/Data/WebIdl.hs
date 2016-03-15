@@ -2,6 +2,8 @@
 
 module Data.WebIdl where
 
+import Data.WebIdl.Types
+
 import Text.Trifecta
 import Text.Parser.Expression as X
 import Text.Parser.LookAhead as X
@@ -10,40 +12,6 @@ import Text.Parser.Char as X hiding (text)
 import Text.Parser.Combinators as X
 
 import Control.Applicative
-
-data Definition
-    = Callback
-    | Interface String String [InterfaceMember]
-    | PartialInterface String [ExtendedAttribute] [InterfaceMember]
-    | PartialDictionary
-    | Dictionary Identifier Inheritance [ DictionaryMember ]
-    | Exception
-    | Enum
-    | Typedef
-    | ImplementsStatement
-
-type DefinitionList = [ ExtendedDefinition ]
-
-data ExtendedDefinition = ExtendedDefinition [ExtendedAttribute] Definition
-
-data ExtendedAttribute
-
-data Qualifiers = Static | Special [Special]
-
-data Special = Getter | Setter | Creator | Deleter | LegacyCaller
-
-data InterfaceMember = InterfaceConst Const
-  | Attribute Bool Bool Type Identifier
-  | Operation Qualifiers
-
-data Const = ConstBool Boolean | ConstFloat Float | ConstInt Int | Null
-
-data DictionaryMember
-data Identifier = Identifier String
-data EnumValue = EnumValue String
-data Inheritance
-data Type
-data WIP
 
 -- | 1
 definitions :: Parser DefinitionList
