@@ -110,7 +110,7 @@ enum = symbol "enum" *> Enum <$> identifier <*> braces enumValueList  <* semi
 
 -- | 21 && 22
 enumValueList :: [EnumValue]
-enumValueList = sepBy1 string (symbol ",")
+enumValueList = sepBy1 string comma
 
 -- | 23
 callbackRest :: Parser Definition
@@ -171,11 +171,12 @@ readOnly = option False $ symbol "readonly" *> True
 
 -- | 35
 operation :: Parser InterfaceMember
-operation = Operation <$> qualifiers <*> operationRest
+operation = replace <$> qualifiers <*> operationRest where
+  replace qs (Operation _ ty i args) = Operation qs ty i args
 
 -- | 36
 qualifiers :: Parser Qualifiers
-qualifiers = symbol "static" *> Static <|> specials
+qualifiers = symbol "static" *> Static <|> Special <$> specials
 
 -- | 37
 specials :: Parser [Special]
@@ -189,29 +190,62 @@ special = symbol "getter" *> Getter
   <|> symbol "deleter" *> Deleter
   <|> symbol "legacycaller" *> LegacyCaller
 
+-- | 39 & 40
+operationRest :: Parser InterfaceMember
+operationRest = Operation [] <$> returnType <*> (optional identifier) <*>
+  parens argumentList
+
+-- | 41 & 42
+argumentList :: Parser [Argument]
+argumentList = sepBy1 argument comma
+
+-- | 43
+argument :: Parser Argument
+argument = replace <$> extendedAttributeList <*> optionalOrRequiredArgument where
+  replace attrs (
+  Argument <$> extendedAttributeList <*> optionalOrRequiredArgument
+
+-- | 44
+optionalOrRequiredArgument :: Parser Argument
+optionalOrRequiredArgument = (symbol "optional" *>
+  Optional <$> parseType <*> argumentName <*> parseDefault)
+  <|> Required <$> parseType <*> ellipsis <*> argumentName
+
+-- | 45
+argumentName :: Parser Identifier
+argumentName = argumentNameKeyword <|> identifier
+
 -- | 46
-ellipsis :: Parser ()
-ellipsis = symbol "..."
+ellipsis :: Parser Bool
+ellipsis = option False $ symbol "..." *> True
 
 -- | 47 & 48
 exceptionMember :: Parser ExceptionMember
 exceptionMember = ExceptionConst <$> const <|>
   ExceptionField <$> parseType <*> identifier <* semi
 
--- | 49
+-- | 49 & 50
 extendedAttributeList :: Parser [ExtendedAttribute]
-extendedAttributeList = symbol "[" *> some extendedAttribute <* symbol "]"
+extendedAttributeList = brackets $ sepBy1 extendedAttribute comma
 
 -- | 51
 extendedAttribute :: Parser ExtendedAttribute
 extendedAttribute = choice
-  [ symbol "(" *> extendedAttributeInner <* symbol ")"
-  ,
+  [ ExtendedAttribute <$>  parens extendedAttributeInner <*> extendedAttributeRest
+  , ExtendedAttribute <$>  brackets extendedAttributeInner <*> extendedAttributeRest
+  , ExtendedAttribute <$>  braces extendedAttributeInner <*> extendedAttributeRest
+  , other extendedAttributeRest
+  ]
+
+-- | 54
+other =
 
 -- | 55
-argumentNameKeyword = choice $ map symbol
-  [ "attribute", "callback", "const", "creator", "deleter",
-    "dictionary", "enum", "exception", "getter", "implements", "inherit",
-    "interface", "legacycaller", "partial", "setter", "static",
-    "stringifier", "typedef", "unrestricted"
-  ]
+argumentNameKeyword :: Parser Identifier
+argumentNameKeyword = Identifier <$> choice names where
+  names = map symbol
+    [ "attribute", "callback", "const", "creator", "deleter",
+      "dictionary", "enum", "exception", "getter", "implements", "inherit",
+      "interface", "legacycaller", "partial", "setter", "static",
+      "stringifier", "typedef", "unrestricted"
+    ]
