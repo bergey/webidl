@@ -234,9 +234,15 @@ extendedAttribute = choice
   [ ExtendedAttribute <$>  parens extendedAttributeInner <*> extendedAttributeRest
   , ExtendedAttribute <$>  brackets extendedAttributeInner <*> extendedAttributeRest
   , ExtendedAttribute <$>  braces extendedAttributeInner <*> extendedAttributeRest
-  , other extendedAttributeRest
+  , other *> extendedAttributeRest
   ]
 
+-- | 52
+extendedAttributeRest :: Maybe ExtendedAttribute
+extendedAttributeRest = optional extendedAttribute
+
+-- | 53
+extendedAttributeInner ::
 -- | 54
 other =
 
